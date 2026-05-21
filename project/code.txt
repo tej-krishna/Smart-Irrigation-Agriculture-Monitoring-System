@@ -1,0 +1,89 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+// ---------------------------
+// Configuration
+// ---------------------------
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+// Your Django Server IP (Make sure both ESP32 and Laptop are on the same WiFi)
+// Run `ipconfig` on Windows or `ifconfig` on Mac to find your IP.
+const char* serverName = "http://192.168.1.100:8000/esp/";
+
+// Unique Device ID (Must match the Farmer ID in your database)
+String device_id = "1";
+
+// ---------------------------
+// Pin Definitions (Example)
+// ---------------------------
+const int waterLevelPin = 32; // Analog Pin
+const int phPin = 33;         // Analog Pin
+const int ldrPin = 34;        // Analog Pin
+const int tempPin = 35;       // Analog Pin (or DHT data pin if using DHT library)
+const int humidityPin = 36;   // Analog Pin (or DHT data pin if using DHT library)
+
+void setup() {
+  Serial.begin(115200);
+
+  // Connect to WiFi
+  Serial.print("Connecting to WiFi");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected to WiFi!");
+}
+
+void loop() {
+  if (WiFi.status() == WL_CONNECTED) {
+    
+    // ---------------------------
+    // 1. Read Sensors
+    // ---------------------------
+    // Note: In a real scenario, you'd map these analog values (0-4095) 
+    // to their actual metric values (e.g., pH 0-14, Temp in Celsius)
+    int water_level = map(analogRead(waterLevelPin), 0, 4095, 0, 100);
+    float ph = map(analogRead(phPin), 0, 4095, 0, 140) / 10.0;
+    int ldr = map(analogRead(ldrPin), 0, 4095, 0, 100);
+    
+    // Simulating Temp and Humidity for this example (Normally use a DHT11/22 Library)
+    int temp = 28;      
+    int humidity = 65;  
+
+    // ---------------------------
+    // 2. Build the URL string
+    // Format: /esp/<device_id>/<water_level>/<ph>/<ldr>/<humidity>/<temp>/
+    // ---------------------------
+    String url = String(serverName) + device_id + "/" + String(water_level) + "/" + 
+                 String(ph, 1) + "/" + String(ldr) + "/" + String(humidity) + "/" + String(temp) + "/";
+
+    Serial.println("Sending data to: " + url);
+
+    // ---------------------------
+    // 3. Send HTTP GET Request
+    // ---------------------------
+    HTTPClient http;
+    http.begin(url);
+    int httpResponseCode = http.GET();
+    
+    if (httpResponseCode > 0) {
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+      String payload = http.getString();
+      Serial.println(payload);
+    } else {
+      Serial.print("Error code: ");
+      Serial.println(httpResponseCode);
+    }
+    
+    http.end(); // Free resources
+  } else {
+    Serial.println("WiFi Disconnected. Reconnecting...");
+    WiFi.reconnect();
+  }
+  
+  // Wait 30  before the next reading
+  delay(30000);
+}

@@ -1,0 +1,448 @@
+{% extends 'base.html' %}
+{% block title %}Farmer Dashboard{% endblock %}
+{% block extra_head %}
+<style>
+    .dashboard-wrapper {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px 20px;
+        box-sizing: border-box;
+    }
+
+    .top-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+        padding: 30px;
+    }
+
+    .farmer-profile {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+    }
+
+    .avatar {
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        font-size: 36px;
+        font-weight: 700;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-md);
+    }
+
+    .farmer-details h2 {
+        margin: 0 0 10px 0;
+        font-size: 28px;
+        color: var(--text-main);
+    }
+
+    .farmer-details p {
+        margin: 5px 0;
+        color: var(--text-muted);
+        font-size: 16px;
+        font-weight: 500;
+    }
+
+    .btn-logout {
+        padding: 12px 24px;
+        background-color: #ef4444;
+        color: white;
+        text-decoration: none;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .btn-logout:hover {
+        background-color: #dc2626;
+        transform: translateY(-2px);
+    }
+
+    .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 25px;
+    }
+
+    .metric-card {
+        padding: 30px;
+        text-align: center;
+        cursor: pointer;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background: rgba(255, 255, 255, 0.7);
+    }
+
+    .metric-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-lg);
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .metric-card h3 {
+        color: var(--text-muted);
+        font-size: 18px;
+        margin-top: 0;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .metric-value {
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    /* Floating Chat Button */
+    .chat-btn-float {
+        position: fixed;
+        bottom: 40px;
+        right: 40px;
+        width: 65px;
+        height: 65px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        font-size: 28px;
+        border: none;
+        box-shadow: 0 10px 25px rgba(5, 150, 105, 0.4);
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transition: transform 0.3s ease;
+        z-index: 100;
+    }
+
+    .chat-btn-float:hover {
+        transform: scale(1.1) rotate(10deg);
+    }
+
+    /* Modal Shared */
+    .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(5px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+    .modal-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* Chart Modal */
+    .chart-modal {
+        width: 90%;
+        max-width: 900px;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        border-radius: 20px;
+    }
+    .chart-modal img {
+        max-width: 100%;
+        border-radius: 12px;
+    }
+
+    /* Chat Modal */
+    .chat-modal {
+        width: 100%;
+        max-width: 450px;
+        height: 80vh;
+        max-height: 700px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: white;
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        border-radius: 20px;
+        transform: translateY(20px);
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .modal-overlay.active .chat-modal {
+        transform: translateY(0);
+    }
+
+    .chat-header {
+        background: var(--primary);
+        color: white;
+        padding: 20px;
+        font-size: 18px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .chat-header .close-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+    }
+
+    .chat-body {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        background: #f8fafc;
+    }
+
+    .msg {
+        max-width: 80%;
+        padding: 12px 16px;
+        border-radius: 18px;
+        font-size: 15px;
+        line-height: 1.4;
+    }
+    .msg.user {
+        background: var(--primary);
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+    }
+    .msg.bot {
+        background: #e2e8f0;
+        color: var(--text-main);
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+    }
+
+    .chat-input {
+        padding: 20px;
+        background: white;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        gap: 10px;
+    }
+    .chat-input input {
+        flex: 1;
+        padding: 12px 20px;
+        border: 1px solid #cbd5e1;
+        border-radius: 30px;
+        outline: none;
+        font-size: 15px;
+    }
+    .chat-input input:focus {
+        border-color: var(--primary);
+    }
+    .chat-input button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transition: transform 0.2s;
+    }
+    .chat-input button:hover {
+        transform: scale(1.1);
+    }
+
+    .typing {
+        color: #94a3b8;
+        font-style: italic;
+        font-size: 14px;
+        margin-left: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .top-header { flex-direction: column; gap: 20px; text-align: center; }
+        .farmer-profile { flex-direction: column; }
+        .chat-modal {
+            bottom: 0; right: 0;
+            width: 100%; height: 100%; max-height: 100vh;
+            border-radius: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper" id="dashboard">
+    <div class="glass-panel top-header">
+        <div class="farmer-profile">
+            <div class="avatar">{{ farmer.name|slice:":1"|upper }}</div>
+            <div class="farmer-details">
+                <h2>{{ farmer.name }}</h2>
+                <p><i class="fas fa-seedling" style="color:var(--primary)"></i> {{ farmer.crop }}</p>
+                <p><i class="fas fa-tractor" style="color:var(--secondary)"></i> {{ farmer.get_farming_type_display }}</p>
+            </div>
+        </div>
+        <a href="{% url 'irrigation:logout' %}" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+
+    <div class="cards-grid">
+        <div class="glass-panel metric-card" data-chart-url="{% url 'irrigation:chart_water' farmer.id %}">
+            <h3><i class="fas fa-tint" style="color:#3b82f6;"></i> Water Level</h3>
+            <div class="metric-value">{{ latest.water_level|default:"--" }}%</div>
+        </div>
+        <div class="glass-panel metric-card" data-chart-url="{% url 'irrigation:chart_ph' farmer.id %}">
+            <h3><i class="fas fa-flask" style="color:#8b5cf6;"></i> Soil pH</h3>
+            <div class="metric-value">{{ latest.ph|default:"--" }}</div>
+        </div>
+        <div class="glass-panel metric-card" data-chart-url="{% url 'irrigation:chart_temp_humi' farmer.id %}">
+            <h3><i class="fas fa-thermometer-half" style="color:#ef4444;"></i> Temp & Humidity</h3>
+            <div class="metric-value">{{ latest.temperature|default:"--" }}°C</div>
+            <div style="font-size:18px; color:var(--text-muted); margin-top:5px;">H: {{ latest.humidity|default:"--" }}%</div>
+        </div>
+    </div>
+</div>
+
+<button class="chat-btn-float" id="openChat"><i class="fas fa-comment-dots"></i></button>
+
+<!-- Chart Modal -->
+<div id="chartOverlay" class="modal-overlay">
+    <div class="glass-panel chart-modal" id="chartModalBox">
+        <img id="chartImage" src="" alt="Chart">
+    </div>
+</div>
+
+<!-- Chat Modal -->
+<div id="chatOverlay" class="modal-overlay">
+    <div class="chat-modal" id="chatModalBox">
+        <div class="chat-header">
+            <span><i class="fas fa-robot"></i> Farming Assistant</span>
+            <button class="close-btn" id="closeChat">&times;</button>
+        </div>
+        <div class="chat-body" id="chatbox">
+            <div class="msg bot">Hello {{ farmer.name }}! How can I assist you with your {{ farmer.crop }} today?</div>
+        </div>
+        <div id="typingIndicator" class="typing" style="display: none;">Typing...</div>
+        <div class="chat-input">
+            <input type="text" id="userInput" placeholder="Ask a question...">
+            <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Auto-refresh sensor data without reloading the page
+        const farmerId = "{{ farmer.id }}";
+        setInterval(() => {
+            fetch(`/api/latest/${farmerId}/`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        // Update water level
+                        const waterCards = document.querySelectorAll('.metric-card');
+                        if (waterCards.length >= 3) {
+                            waterCards[0].querySelector('.metric-value').innerText = data.data.water_level + '%';
+                            waterCards[1].querySelector('.metric-value').innerText = data.data.ph;
+                            waterCards[2].querySelector('.metric-value').innerText = data.data.temperature + '°C';
+                            waterCards[2].querySelector('div[style*="font-size:18px"]').innerText = 'H: ' + data.data.humidity + '%';
+                        }
+                    }
+                })
+                .catch(err => console.error("Failed to fetch latest readings", err));
+        }, 30000); // 30 seconds
+
+        // Chart Modal Logic
+        const chartOverlay = document.getElementById('chartOverlay');
+        const chartImage = document.getElementById('chartImage');
+        const chartModalBox = document.getElementById('chartModalBox');
+
+        document.querySelectorAll('.metric-card').forEach(card => {
+            card.addEventListener('click', () => {
+                chartImage.src = card.dataset.chartUrl + '?t=' + Date.now();
+                chartOverlay.classList.add('active');
+            });
+        });
+
+        chartOverlay.addEventListener('click', (e) => {
+            if (!chartModalBox.contains(e.target)) {
+                chartOverlay.classList.remove('active');
+                setTimeout(() => chartImage.src = '', 300);
+            }
+        });
+
+        // Chat Modal Logic
+        const chatOverlay = document.getElementById('chatOverlay');
+        const openChatBtn = document.getElementById('openChat');
+        const closeChatBtn = document.getElementById('closeChat');
+        const chatModalBox = document.getElementById('chatModalBox');
+
+        openChatBtn.addEventListener('click', () => {
+            chatOverlay.classList.add('active');
+            setTimeout(() => document.getElementById('userInput').focus(), 300);
+        });
+
+        closeChatBtn.addEventListener('click', () => chatOverlay.classList.remove('active'));
+        
+        chatOverlay.addEventListener('click', (e) => {
+            if (e.target === chatOverlay) { // close if click outside chatbox
+                chatOverlay.classList.remove('active');
+            }
+        });
+
+        // Chat Functionality
+        const chatbox = document.getElementById("chatbox");
+        const typingIndicator = document.getElementById("typingIndicator");
+        const userInput = document.getElementById("userInput");
+
+        document.getElementById("sendBtn").addEventListener("click", sendMessage);
+        userInput.addEventListener("keypress", function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        function sendMessage() {
+            let msg = userInput.value.trim();
+            if (!msg) return;
+
+            appendMessage("user", msg);
+            userInput.value = "";
+            typingIndicator.style.display = "block";
+            chatbox.scrollTop = chatbox.scrollHeight;
+
+            fetch(`/chatbot/?message=${encodeURIComponent(msg)}`)
+                .then(res => res.json())
+                .then(data => {
+                    typingIndicator.style.display = "none";
+                    appendMessage("bot", data.reply);
+                })
+                .catch(() => {
+                    typingIndicator.style.display = "none";
+                    appendMessage("bot", "Sorry, I couldn’t fetch a response right now.");
+                });
+        }
+
+        function appendMessage(sender, text) {
+            let div = document.createElement("div");
+            div.className = `msg ${sender}`;
+            div.textContent = text;
+            chatbox.appendChild(div);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+    });
+</script>
+{% endblock %}

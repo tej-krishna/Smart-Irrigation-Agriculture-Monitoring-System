@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% block title %}Government Dashboard{% endblock %}
+{% block extra_head %}
+<style>
+    .gov-wrapper {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+
+    .gov-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+        padding: 30px;
+    }
+
+    .gov-header h2 {
+        margin: 0;
+        font-size: 28px;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .btn-logout {
+        padding: 12px 24px;
+        background-color: #ef4444;
+        color: white;
+        text-decoration: none;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .btn-logout:hover {
+        background-color: #dc2626;
+        transform: translateY(-2px);
+    }
+
+    .farmer-table-container {
+        overflow-x: auto;
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--glass-border);
+    }
+
+    .farmer-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+    .farmer-table th, .farmer-table td {
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .farmer-table th {
+        background: rgba(255, 255, 255, 0.4);
+        color: var(--primary);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+    }
+
+    .farmer-table tr {
+        transition: background-color 0.2s ease, transform 0.2s ease;
+        cursor: pointer;
+    }
+
+    .farmer-table tr:hover {
+        background-color: rgba(255, 255, 255, 0.7);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .farmer-table td {
+        color: var(--text-main);
+        font-size: 15px;
+        font-weight: 500;
+    }
+
+    .farmer-table td i {
+        margin-right: 8px;
+        opacity: 0.8;
+    }
+
+    /* Modal */
+    .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(5px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+    
+    .modal-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .modal-content {
+        width: 90%;
+        max-width: 1000px;
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 85vh;
+        box-shadow: var(--shadow-lg);
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+    }
+    
+    .modal-overlay.active .modal-content {
+        transform: translateY(0);
+    }
+
+    .modal-header {
+        padding: 20px 30px;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 { margin: 0; font-size: 20px; }
+    .modal-header p { margin: 5px 0 0 0; font-size: 14px; opacity: 0.9; }
+
+    .close-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 28px;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .modal-body {
+        flex: 1;
+        padding: 0;
+        overflow: hidden;
+        background: #f8fafc;
+    }
+
+    .modal-body iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gov-wrapper">
+    <div class="glass-panel gov-header">
+        <h2><i class="fas fa-chart-line"></i> Government Dashboard</h2>
+        <a href="{% url 'irrigation:logout' %}" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+
+    <div class="farmer-table-container">
+        <table class="farmer-table">
+            <thead>
+                <tr>
+                    <th>ID No</th>
+                    <th>Farmer Name</th>
+                    <th>Crop Type</th>
+                    <th>Crop</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for farmer in farmers %}
+                <tr onclick="showFarmer('{{ farmer.id }}', '{{ farmer.name|escapejs }}', '{{ farmer.crop|escapejs }}', '{{ farmer.get_farming_type_display|escapejs }}')">
+                    <td>#{{ farmer.id }}</td>
+                    <td><strong>{{ farmer.name }}</strong></td>
+                    <td><i class="fas fa-tractor" style="color:var(--secondary);"></i> {{ farmer.get_farming_type_display }}</td>
+                    <td><i class="fas fa-seedling" style="color:var(--primary);"></i> {{ farmer.crop }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 30px; color: var(--text-muted);">No farmers registered yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Farmer Details Modal -->
+<div id="farmerModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div>
+                <h3 id="modalFarmerName">Farmer Name</h3>
+                <p id="modalFarmerDetails">Details</p>
+            </div>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Load the farmer dashboard inside the iframe -->
+            <iframe id="analyticsFrame" src=""></iframe>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const farmerModal = document.getElementById('farmerModal');
+    const analyticsFrame = document.getElementById('analyticsFrame');
+
+    function showFarmer(id, name, crop, type) {
+        document.getElementById("modalFarmerName").innerText = name;
+        document.getElementById("modalFarmerDetails").innerText = "Crop: " + crop + " | Type: " + type;
+        
+        // Show loading state by resetting src
+        analyticsFrame.src = "/farmer/" + id + "/";
+        
+        farmerModal.classList.add('active');
+        document.body.style.overflow = 'hidden'; // prevent background scrolling
+    }
+
+    function closeModal() {
+        farmerModal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+        setTimeout(() => analyticsFrame.src = '', 300); // clear iframe after animation
+    }
+
+    // Close on click outside
+    farmerModal.addEventListener('click', (e) => {
+        if (e.target === farmerModal) {
+            closeModal();
+        }
+    });
+</script>
+{% endblock %}

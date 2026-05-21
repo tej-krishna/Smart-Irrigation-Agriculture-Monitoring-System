@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% block title %}Login - Smart Irrigation{% endblock %}
+{% block content %}
+<style>
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .login-wrap {
+        width: 100%;
+        max-width: 420px;
+        padding: 20px;
+    }
+
+    .login-card {
+        padding: 40px 30px;
+        text-align: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .login-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .login-card h2 {
+        margin-top: 0;
+        margin-bottom: 25px;
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+        text-align: left;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid rgba(0,0,0,0.1);
+        border-radius: 10px;
+        font-size: 15px;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+        background: rgba(255,255,255,0.8);
+    }
+
+    .form-group input:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
+        background: #fff;
+    }
+
+    .btn-submit {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 10px;
+        background-color: var(--primary);
+        color: #fff;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        margin-top: 10px;
+    }
+
+    .btn-submit:hover {
+        background-color: var(--primary-hover);
+        transform: scale(1.02);
+    }
+
+    .error {
+        color: #ef4444;
+        margin-bottom: 15px;
+        font-weight: 600;
+        background: rgba(239, 68, 68, 0.1);
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+    .toggle-container {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+
+    .toggle-btn {
+        background: transparent;
+        border: 2px solid transparent;
+        color: var(--text-muted);
+        font-weight: 600;
+        padding: 8px 16px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .toggle-btn.active {
+        background: var(--primary);
+        color: white;
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* hide sections by default if not active */
+    #govForm { display: none; }
+</style>
+
+<div class="login-wrap">
+    <div class="glass-panel login-card">
+        <h2>Welcome Back</h2>
+        
+        <div class="toggle-container">
+            <button type="button" class="toggle-btn active" id="btnFarmer" onclick="setMode('farmer')">Farmer</button>
+            <button type="button" class="toggle-btn" id="btnGov" onclick="setMode('gov')">Government</button>
+        </div>
+
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="mode" id="modeInput" value="farmer">
+
+            <div id="farmerForm">
+                <div class="form-group">
+                    <label>Device / Farmer ID</label>
+                    <input type="text" name="device_id" placeholder="e.g. 123" required>
+                </div>
+                <button type="submit" class="btn-submit">Login as Farmer</button>
+            </div>
+
+            <div id="govForm">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" name="username" placeholder="Gov user">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" placeholder="Password">
+                </div>
+                <button type="submit" class="btn-submit">Login as Government</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function setMode(mode) {
+        const farmerForm = document.getElementById('farmerForm');
+        const govForm = document.getElementById('govForm');
+        const modeInput = document.getElementById('modeInput');
+        const btnFarmer = document.getElementById('btnFarmer');
+        const btnGov = document.getElementById('btnGov');
+
+        modeInput.value = mode;
+
+        if (mode === 'farmer') {
+            farmerForm.style.display = 'block';
+            govForm.style.display = 'none';
+            btnFarmer.classList.add('active');
+            btnGov.classList.remove('active');
+            document.querySelector('#farmerForm input').required = true;
+        } else {
+            farmerForm.style.display = 'none';
+            govForm.style.display = 'block';
+            btnGov.classList.add('active');
+            btnFarmer.classList.remove('active');
+            document.querySelector('#farmerForm input').required = false;
+        }
+    }
+</script>
+{% endblock %}
